@@ -1,0 +1,38 @@
+[build-system]
+requires = [
+  "setuptools>=40.6",
+]
+build-backend = "setuptools.build_meta"
+
+
+[project]
+name = "cqmodel"
+version = "0.0.1"
+description = "Work with CadQuery models"
+readme = "README.md"
+authors = [
+  { name = "Steve Work", email = "steve@work.renlabs.com" },
+]
+requires-python = ">=3.7"
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "License :: GNU AGPL",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.7",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+]
+dependencies = [
+  "cadquery",
+  "vtk",
+]
+
+
+[project.scripts]
+cqmodel = "cqmodel.__main__:main"
+
+
+[tool.setuptools.packages.find]
+where = ["src"]
