@@ -50,12 +50,32 @@ def instance(p=PARAMS):
              .cutThruAll()  # Blind(p['table_thickness'])
              )
 
+    pos_box_1 = (cq.Workplane("XZ")
+                 .workplane(inner_radius)
+                 .moveTo(0, inches(2.5))
+                 .box(p['leg_stub_diameter'],
+                      p['table_thickness'],
+                      p['form_wall_thickness'],
+                      centered=(False, False, False)
+                      )
+                 )
+
     neg_box_1 = (cq.Workplane("XZ")
                  .workplane(outer_radius)
                  .box(p['leg_stub_diameter'] * 3,
                       p['leg_stub_diameter'] * 3,
                       p['leg_stub_height'] * 3,
                       centered=(True, True, False))
+                 )
+
+    pos_box_2 = (cq.Workplane("YZ")
+                 .workplane(-outer_radius)
+                 .moveTo(0, inches(2.5))
+                 .box(p['leg_stub_diameter'],
+                      p['table_thickness'],
+                      p['form_wall_thickness'],
+                      centered=(False, False, False)
+                      )
                  )
 
     neg_box_2 = (cq.Workplane("YZ")
@@ -114,6 +134,6 @@ def instance(p=PARAMS):
            )
     
 
-    result = ((leg - neg_box_1) - neg_box_2) + walls
+    result = (((leg + pos_box_1 + pos_box_2) - neg_box_1) - neg_box_2) + walls
     return result
 
