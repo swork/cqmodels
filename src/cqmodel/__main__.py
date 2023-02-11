@@ -40,13 +40,14 @@ def main():
     model_name = basename(a.model).split('.py', 1)[0]
 
     sys.path.insert(0, dirname(a.model))
-    instance = importlib.import_module(model_name).instance()
-    sys.path.pop(0)
+    model = importlib.import_module(model_name)
 
-    if a.action == 'use':
-        prepare.open_in_slicer(a.model, instance, conf)
-    elif a.action in ['show', 'view']:
-        view.cq_in_window(a.model, instance, conf)
+    if a.action in ['use',]:
+        prepare.open_in_slicer(a.model, model, conf)
+    elif a.action in ['show', 'view',]:
+        view.Viewer(a.model, model, conf).view()
+    elif a.action in ['live']:
+        anyio.run(live.Viewer(a.model, model, conf).view)
 
 if __name__ == '__main__':
     main()

@@ -1,5 +1,14 @@
+"""
+
+Ripped examples from:
+ https://kitware.github.io/vtk-examples/site/Python/IO/ReadSTL/
+ https://stackoverflow.com/questions/31075569/vtk-rotate-actor-programmatically-while-vtkrenderwindowinteractor-is-active
+"""
+
 import importlib
+from functools import partial
 import sys
+import os
 from os.path import dirname, basename, join
 import cadquery as cq
 # noinspection PyUnresolvedReferences
@@ -17,46 +26,70 @@ from vtkmodules.vtkRenderingCore import (
 )
 from vtkmodules.vtkIOGeometry import vtkSTLReader
 
-def cq_in_window(model_pyfile:str, cq_instance, config:dict) -> None:
-    model_name = basename(model_pyfile).split('.py', 1)[0]
-    stl_name = join(config['out_dir'], model_name + '.stl')
-    cq.exporters.export(cq_instance, stl_name)
+class Viewer:
+    def __init__(self, model_pyfile:str, cq_model, config:dict):
+        self.model_pyfile = model_pyfile
+        self.cq_model = cq_model
+        self.config = config
+        self._colors = vtkNamedColors()
+        self._model_name = basename(model_pyfile).split('.py', 1)[0]
+        self._stl_name = join(config['out_dir'], self._model_name + '.stl')
+        self._actor = None
+        self._mtime = os.stat(model_pyfile).st_mtime
+        self._ren = vtkRenderer()
+        self._renWin = vtkRenderWindow()
+        self._renWin.AddRenderer(self._ren)
+        self._renWin.SetWindowName(self._model_name)
+        self._iren = vtkRenderWindowInteractor()
+        self._iren.SetRenderWindow(self._renWin)
+        self._ren.SetBackground(self._colors.GetColor3d('DarkOliveGreen'))
 
-    # https://kitware.github.io/vtk-examples/site/Python/IO/ReadSTL/
-    colors = vtkNamedColors()
+    def create_actor(self):
+        reader = vtkSTLReader()
+        reader.SetFileName(self._stl_name)
 
-    reader = vtkSTLReader()
-    reader.SetFileName(stl_name)
+        mapper = vtkPolyDataMapper()
+        mapper.SetInputConnection(reader.GetOutputPort())
 
-    mapper = vtkPolyDataMapper()
-    mapper.SetInputConnection(reader.GetOutputPort())
+        actor = vtkActor()
+        actor.SetMapper(mapper)
+        actor.GetProperty().SetDiffuse(0.8)
+        actor.GetProperty().SetDiffuseColor(self._colors.GetColor3d('LightSteelBlue'))
+        actor.GetProperty().SetSpecular(0.3)
+        actor.GetProperty().SetSpecularPower(60.0)
 
-    actor = vtkActor()
-    actor.SetMapper(mapper)
-    actor.GetProperty().SetDiffuse(0.8)
-    actor.GetProperty().SetDiffuseColor(colors.GetColor3d('LightSteelBlue'))
-    actor.GetProperty().SetSpecular(0.3)
-    actor.GetProperty().SetSpecularPower(60.0)
+        return actor
 
-    # Create a rendering window and renderer
-    ren = vtkRenderer()
-    renWin = vtkRenderWindow()
-    renWin.AddRenderer(ren)
-    renWin.SetWindowName('ReadSTL')
+    def maybe_reload_model(self, *args):
+        mtime = os.stat(self.model_pyfile).st_mtime
+        if mtime != self._mtime:
+            print("Reload...")
+            self._mtime = mtime
 
-    # Create a renderwindowinteractor
-    iren = vtkRenderWindowInteractor()
-    iren.SetRenderWindow(renWin)
+            # Time will go by, flash window empty for the duration
+            self._ren.RemoveActor(self._actor)
+            self._renWin.Render()
 
-    # Assign actor to the renderer
-    ren.AddActor(actor)
-    ren.SetBackground(colors.GetColor3d('DarkOliveGreen'))
+            new_model = importlib.reload(self.cq_model)
+            cq.exporters.export(new_model.instance(), self._stl_name)
 
-    # Enable user interface interactor
-    iren.Initialize()
-    renWin.Render()
-    iren.Start()
-    # __doc__: -- and the path to watching the input for auto-reload:
-    # 'Start(self) -> None\nC++: virtual void Start()\n\nStart the event loop.
-    # This is provided so that you do not have to\nimplement your own event
-    # loop. You still can use your own event\nloop if you want.\n'
+            actor = self.create_actor()
+            self._ren.AddActor(actor)
+            self._renWin.Render()
+            self._actor = actor
+
+
+    def view(self) -> None:
+        self._actor = self.create_actor()
+
+        # Assign actor to the renderer
+        self._ren.AddActor(self._actor)
+
+        # Enable user interface interactor
+        self._iren.Initialize()
+        self._renWin.Render()
+
+        self._iren.CreateRepeatingTimer(1000)
+        self._iren.AddObserver("TimerEvent",
+                               self.maybe_reload_model)
+        self._iren.Start()
