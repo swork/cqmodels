@@ -53,7 +53,7 @@ def instance(p=PARAMS):
     pos_box_1 = (cq.Workplane("XZ")
                  .workplane(inner_radius)
                  .moveTo(0, inches(2.5))
-                 .box(p['leg_stub_diameter'],
+                 .box(leg_stub_radius + inches(1),
                       p['table_thickness'],
                       p['form_wall_thickness'],
                       centered=(False, False, False)
@@ -71,7 +71,7 @@ def instance(p=PARAMS):
     pos_box_2 = (cq.Workplane("YZ")
                  .workplane(-outer_radius)
                  .moveTo(0, inches(2.5))
-                 .box(p['leg_stub_diameter'],
+                 .box(leg_stub_radius + inches(1),
                       p['table_thickness'],
                       p['form_wall_thickness'],
                       centered=(False, False, False)

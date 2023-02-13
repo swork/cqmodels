@@ -77,6 +77,7 @@ class Viewer:
             self._ren.AddActor(actor)
             self._renWin.Render()
             self._actor = actor
+            self.cq_model = new_model
 
 
     def view(self) -> None:
@@ -88,6 +89,8 @@ class Viewer:
         # Enable user interface interactor
         self._iren.Initialize()
         self._renWin.Render()
+
+        self.maybe_reload_model()
 
         self._iren.CreateRepeatingTimer(1000)
         self._iren.AddObserver("TimerEvent",
