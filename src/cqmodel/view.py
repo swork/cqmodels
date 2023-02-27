@@ -71,6 +71,7 @@ class Viewer:
             self._renWin.Render()
 
             new_model = importlib.reload(self.cq_model)
+            print(f'exporting model as {os.path.abspath(self._stl_name)}')
             cq.exporters.export(new_model.instance(), self._stl_name)
 
             actor = self.create_actor()
@@ -92,7 +93,7 @@ class Viewer:
 
         self.maybe_reload_model()
 
-        self._iren.CreateRepeatingTimer(1000)
+        self._iren.CreateRepeatingTimer(100)
         self._iren.AddObserver("TimerEvent",
                                self.maybe_reload_model)
         self._iren.Start()
