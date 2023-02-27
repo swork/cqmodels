@@ -68,6 +68,16 @@ def instance(p=PARAMS):
                       centered=(True, True, False))
                  )
 
+    # vertical bar to support the top part of the side walls
+    support1 = (cq.Workplane("XZ")
+                .workplane(outer_radius)
+                .moveTo(inches(4.0), inches(2.5))
+                .box(2, p['table_thickness'], 2, centered=False)
+                .edges("<<Z and <<Y")
+                .toPending()
+                .chamfer(1.999)
+                )
+
     pos_box_2 = (cq.Workplane("YZ")
                  .workplane(-outer_radius)
                  .moveTo(0, inches(2.5))
@@ -85,6 +95,34 @@ def instance(p=PARAMS):
                       p['leg_stub_height'] * 3,
                       centered=(True, True, False))
                  )
+
+    support2 = (cq.Workplane("YZ")
+                .workplane(outer_radius, invert=True)
+                .moveTo(inches(4.0), inches(-6.5))
+                .box(2, p['table_thickness'], 2, centered=False)
+                .edges("<<Z and <<X")
+                .toPending()
+                .chamfer(1.999)
+                )
+
+    stiffeners = support1 + support2
+
+    # form_supported = (form
+    #                   .faces(">>Z")
+    #                   .workplane(origin=(-(outer_radius+2), inches(3.6)), invert=True)
+    #                   .box(2, 2, p['table_thickness'], centered=False)
+    #                   # .faces("<<Z")  # of the new box, I hope
+    #                   # .edges("#Z")
+    #                   # .toPending()
+    #                   # .chamfer(1)  # hoping to avoid extra supports
+
+    #                   # and again on the other wall
+    #                   .faces(">>Z")
+    #                   .workplane(origin=(inches(3.6), -(outer_radius)), invert=True)
+    #                   .box(2, 2, p['table_thickness'], centered=False)
+    #                   )
+
+
 
     leg = (cq.Workplane("XY")
 
@@ -134,6 +172,7 @@ def instance(p=PARAMS):
            )
     
 
-    result = (((leg + pos_box_1 + pos_box_2) - neg_box_1) - neg_box_2) + walls
-    return result
+    form = (((leg + pos_box_1 + pos_box_2) - neg_box_1) - neg_box_2) + walls + stiffeners
+
+    return form
 
