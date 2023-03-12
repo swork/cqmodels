@@ -6,3 +6,5 @@ CadQuery models, mostly practicing
    supports. I'm using it to make a heavy table for the 3D printer that will be
    printing it (beforehand, weird).
    
+ * dolly_roller rides on a 1" aluminum tube across the two rails of
+   the Nethercott dolly.

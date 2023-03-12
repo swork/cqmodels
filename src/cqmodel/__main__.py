@@ -37,17 +37,15 @@ def main():
                 pass
     # except error with json: complain
 
-    model_name = basename(a.model).split('.py', 1)[0]
+    model_modulename = basename(a.model).split('.py', 1)[0]
 
     sys.path.insert(0, dirname(a.model))
-    model = importlib.import_module(model_name)
+    model = importlib.import_module(model_modulename)  # proves it can be done
 
-    if a.action in ['use',]:
-        prepare.open_in_slicer(a.model, model, conf)
-    elif a.action in ['show', 'view',]:
-        view.Viewer(a.model, model, conf).view()
-    elif a.action in ['live']:
-        anyio.run(live.Viewer(a.model, model, conf).view)
+    if a.action in ['use']:
+        prepare.open_in_slicer(a.model, model_modulename, conf)
+    elif a.action in ['show']:
+        view.ModelVisualizer(a.model, model_modulename, conf).run_sync()
 
 if __name__ == '__main__':
     main()
