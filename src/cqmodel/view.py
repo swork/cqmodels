@@ -38,9 +38,14 @@ class ModelVisualizer:
         stls = set()
         if getattr(self.model_module, 'instance', None):
             stl_filename = self.model_pyfile.replace(".py", ".stl")
-            model = self.model_module.instance()
-            cq.exporters.export(model, stl_filename)
-            stls.add(stl_filename)
+            try:
+                model = self.model_module.instance()
+            except Exception:
+                print(f'Trouble with model "{stl_filename.split(".", 1)[0]}"', exc_info=True)
+                del(stls[stl_filename])
+            else:
+                cq.exporters.export(model, stl_filename)
+                stls.add(stl_filename)
         elif getattr(self.model_module, 'instances'):
             class_instances = {}
             stls = set()
@@ -53,13 +58,26 @@ class ModelVisualizer:
                         class_instance = getattr(self.model_module, cls_name)()
                         class_instances[cls_name] = class_instance
                     bound_method = getattr(class_instance, method_name)
-                    model = bound_method()  # call class.method()
                     stl_filename = join(dirname(self.model_pyfile), f'{method_name}.stl')
+                    try:
+                        model = bound_method()  # call class.method()
+                    except Exception:
+                        print(f'Trouble with model "{stl_filename.split(".")[0]}"', exc_info=True)
+                        del(stls[stl_filename])
+                    else:
+                        stls.add(stl_filename)
                 else:  # "function"
-                    model = getattr(self.model_module, instance)()  # call instance()
                     stl_filename = join(dirname(self.model_pyfile), f'{instance}.stl')
+                    print(f'by function: {stl_filename}')
+                    try:
+                        model = getattr(self.model_module, instance)()  # call instance()
+                    except Exception:
+                        print(f'Trouble with model "{stl_filename.split(".")[0]}", exc_info=True')
+                        del(stls[stl_filename])
+                    else:
+                        stls.add(stl_filename)
+                print('writing', stl_filename)
                 cq.exporters.export(model, stl_filename)
-                stls.add(stl_filename)
         return stls
 
     def converge_viewers(self, stls):
