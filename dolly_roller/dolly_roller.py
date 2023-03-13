@@ -37,6 +37,21 @@ PARAMS = {
     'central support gap': os.environ.get('CENTRAL_SUPPORT_GAP_MM', 0),
 }
 
+def axle_support():
+    solid = (cq.Workplane("XY")
+             .rect(inches(1.25), inches(1.25))
+             .extrude(inches(0.85))
+             .edges("|Z")
+             .chamfer(inches(0.25))
+             .circle(PARAMS['axle radius'] - inches(0.125))
+             .cutThruAll()
+             )
+    negative = (cq.Workplane("XY")
+                .circle(PARAMS['axle radius'] + PARAMS['fixed radial clearance'])
+                .extrude(inches(0.4))
+                )
+    return solid - negative
+
 class Roller:
     def __init__(self):
         for param in PARAMS.keys():
@@ -124,7 +139,14 @@ class Roller:
         return solid
 
 def instances():
-    return [ 'Roller.roller', 'Roller.spacer', 'Roller.cap', 'Roller.cage', 'Roller.bearing' ]
+    return [
+        'Roller.roller',
+        'Roller.spacer',
+        'Roller.cap',
+        'Roller.cage',
+        'Roller.bearing',
+        'axle_support'
+    ]
 
 # def instance():
 #     select = os.environ.get('SELECT', 'dolly_roller')
