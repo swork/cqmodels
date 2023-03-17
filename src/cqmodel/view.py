@@ -7,6 +7,7 @@ Ripped examples from:
 
 import multiprocessing as mp
 import importlib
+import traceback
 import time
 import sys
 import os
@@ -32,20 +33,28 @@ class ModelVisualizer:
             self._viewers[viewer].terminate()  # die while leaving .stl in place
             self._viewers[viewer].join()  # wait for it to finish dying. Why? Zombies?
 
+    def _calc_model(self, callable, stls, stl_filename):
+        try:
+            model = callable()
+        except Exception as e:
+            print(f'Trouble with model "{stl_filename.split(".", 1)[0]}"')
+            traceback.print_exception(e)
+            try:
+                stls.remove(stl_filename)
+            except KeyError:
+                pass
+            return None
+        stls.add(stl_filename)
+        return model
+
+
     def write_stls(self):
         """Re-import model, write out stl files, and return an iterable of their names"""
         self.model_module = importlib.reload(self.model_module)
         stls = set()
         if getattr(self.model_module, 'instance', None):
             stl_filename = self.model_pyfile.replace(".py", ".stl")
-            try:
-                model = self.model_module.instance()
-            except Exception:
-                print(f'Trouble with model "{stl_filename.split(".", 1)[0]}"', exc_info=True)
-                del(stls[stl_filename])
-            else:
-                cq.exporters.export(model, stl_filename)
-                stls.add(stl_filename)
+            call_to_compute = self.model_module.instance
         elif getattr(self.model_module, 'instances'):
             class_instances = {}
             stls = set()
@@ -57,27 +66,17 @@ class ModelVisualizer:
                     else:
                         class_instance = getattr(self.model_module, cls_name)()
                         class_instances[cls_name] = class_instance
-                    bound_method = getattr(class_instance, method_name)
                     stl_filename = join(dirname(self.model_pyfile), f'{method_name}.stl')
-                    try:
-                        model = bound_method()  # call class.method()
-                    except Exception:
-                        print(f'Trouble with model "{stl_filename.split(".")[0]}"', exc_info=True)
-                        del(stls[stl_filename])
-                    else:
-                        stls.add(stl_filename)
+                    call_to_compute = getattr(class_instance, method_name)
                 else:  # "function"
                     stl_filename = join(dirname(self.model_pyfile), f'{instance}.stl')
-                    print(f'by function: {stl_filename}')
-                    try:
-                        model = getattr(self.model_module, instance)()  # call instance()
-                    except Exception:
-                        print(f'Trouble with model "{stl_filename.split(".")[0]}", exc_info=True')
-                        del(stls[stl_filename])
-                    else:
-                        stls.add(stl_filename)
-                print('writing', stl_filename)
-                cq.exporters.export(model, stl_filename)
+                    call_to_compute = getattr(self.model_module, instance)
+        model = self._calc_model(call_to_compute, stls, stl_filename)
+        if model:
+            cq.exporters.export(model, stl_filename)
+        else:
+            # Visually present failure? Yellow background? How to signal?
+            pass
         return stls
 
     def converge_viewers(self, stls):
