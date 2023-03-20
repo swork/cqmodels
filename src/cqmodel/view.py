@@ -71,12 +71,12 @@ class ModelVisualizer:
                 else:  # "function"
                     stl_filename = join(dirname(self.model_pyfile), f'{instance}.stl')
                     call_to_compute = getattr(self.model_module, instance)
-        model = self._calc_model(call_to_compute, stls, stl_filename)
-        if model:
-            cq.exporters.export(model, stl_filename)
-        else:
-            # Visually present failure? Yellow background? How to signal?
-            pass
+                model = self._calc_model(call_to_compute, stls, stl_filename)
+                if model:
+                    cq.exporters.export(model, stl_filename)
+                else:
+                    # Visually present failure? Yellow background? How to signal?
+                    pass
         return stls
 
     def converge_viewers(self, stls):
