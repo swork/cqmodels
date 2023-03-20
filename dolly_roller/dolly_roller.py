@@ -15,23 +15,25 @@ def inches(mm: float) -> float:
 
 PARAMS = {
     'axle radius': inches(0.5),
-    'bearing radial clearance': mm(0.0),
-    'fixed radial clearance': mm(0.5),  # 0 was too little in PLA
+    'bearing radial clearance': mm(3), # measured 2.4mm interference but bearing is maybe oversize.
+    'fixed radial clearance': mm(1),  # 0 was too little in PLA, 0.5 too little for bearing slop
     'interference radial clearance': mm(0.15),  # 0 was too little in PLA, 0.5 way too much
     'axial clearance': mm(1),
-    'wall thickness': mm(2.5),
+    'wall thickness': mm(4.0),  # 2.5 roller surface was flimsy in PLA
     'full width': inches(4.0),
     'full flat width': inches(3.0),  # matching the width of the road trailer central rail
     'max radius': inches(1.5),
     'flange flat': mm(3),
     'roller bearing diameter': inches(0.25),
     'spacer flange radial': mm(3),
+    'spacer interference': mm(0.1),
+    'spacer wall thickness': mm(2.5),
     'flanges axial': mm(3),
     'interference overlap': mm(8),
-    'cage outer clearance': mm(1),
+    'cage outer clearance': mm(4),
     'cage inner clearance': mm(1),
     'cage axial clearance': mm(1),
-    'cage bearing clearance': mm(0.4),
+    'cage bearing clearance': mm(0.65),  # 0.4 was tight against 1/4" acetal rod in PETG
     'bearingcenterspacing': inches(0.35),
     'length overall': os.environ.get('LENGTH_OVERALL_MM', inches(12)),
     'central support gap': os.environ.get('CENTRAL_SUPPORT_GAP_MM', 0),
@@ -80,7 +82,7 @@ class Roller:
         return solid
 
     def spacer(self):
-        cylinder_outer_radius = self._axle_mating_cylinder_inner_radius + self.wall_thickness
+        cylinder_outer_radius = self._axle_mating_cylinder_inner_radius + self.spacer_wall_thickness
         length = self.length_overall - self.full_width - self.flanges_axial * 4 - self.axial_clearance
         solid = (cq.Workplane("XY")
                  .circle(cylinder_outer_radius + self.spacer_flange_radial)
