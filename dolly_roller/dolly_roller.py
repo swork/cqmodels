@@ -14,8 +14,8 @@ def inches(mm: float) -> float:
     return mm * 25.4
 
 PARAMS = {
-    'axle radius': inches(0.5),
-    'bearing radial clearance': mm(0.35), # measured 0.24mm interference but bearing is maybe oversize.
+    'axle radius': mm(25.7) / 2,  # nominal 25.4 but measures big
+    'bearing radial clearance': mm(0.2),
     'fixed radial clearance': mm(1),  # 0 was too little in PLA, 0.5 too little for bearing slop
     'cap radial interference': mm(0.10),
     'axial clearance': mm(1),
