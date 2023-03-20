@@ -15,9 +15,9 @@ def inches(mm: float) -> float:
 
 PARAMS = {
     'axle radius': inches(0.5),
-    'bearing radial clearance': mm(3), # measured 2.4mm interference but bearing is maybe oversize.
+    'bearing radial clearance': mm(0.35), # measured 0.24mm interference but bearing is maybe oversize.
     'fixed radial clearance': mm(1),  # 0 was too little in PLA, 0.5 too little for bearing slop
-    'interference radial clearance': mm(0.15),  # 0 was too little in PLA, 0.5 way too much
+    'cap radial interference': mm(0.10),
     'axial clearance': mm(1),
     'wall thickness': mm(4.0),  # 2.5 roller surface was flimsy in PLA
     'full width': inches(4.0),
@@ -26,15 +26,15 @@ PARAMS = {
     'flange flat': mm(3),
     'roller bearing diameter': inches(0.25),
     'spacer flange radial': mm(3),
-    'spacer interference': mm(0.1),
     'spacer wall thickness': mm(2.5),
     'flanges axial': mm(3),
     'interference overlap': mm(8),
-    'cage outer clearance': mm(4),
+    'cage outer clearance': mm(1.35),  # troublesome: sets click-in for rollers
     'cage inner clearance': mm(1),
+    'cage thickness': mm(4.4),  # close control over click-in for rollers, but still varies with inner circle size
     'cage axial clearance': mm(1),
     'cage bearing clearance': mm(0.65),  # 0.4 was tight against 1/4" acetal rod in PETG
-    'bearingcenterspacing': inches(0.35),
+    'bearing center spacing': inches(0.35),
     'length overall': os.environ.get('LENGTH_OVERALL_MM', inches(12)),
     'central support gap': os.environ.get('CENTRAL_SUPPORT_GAP_MM', 0),
 }
@@ -95,7 +95,7 @@ class Roller:
         return solid
 
     def cap(self):
-        interference_outer_radius = self.axle_radius + self.roller_bearing_diameter + self.bearing_radial_clearance - self.interference_radial_clearance
+        interference_outer_radius = self.axle_radius + self.roller_bearing_diameter + self.bearing_radial_clearance + self.cap_radial_interference
         surface_outer_radius = self._roller_cylinder_outer_radius
         solid = (cq.Workplane("XY")
                  .circle(surface_outer_radius)
@@ -109,10 +109,11 @@ class Roller:
     def cage(self):
         roller_center_radius = self.axle_radius + (self.roller_bearing_diameter / 2)
         roller_center_circumference = math.pi * roller_center_radius * 2
-        roller_count = int(roller_center_circumference // self.bearingcenterspacing)
+        roller_count = int(roller_center_circumference // self.bearing_center_spacing)
+        cage_outer_radius = self.axle_radius + self.cage_inner_clearance + self.cage_thickness
         print(f'cr:{roller_center_radius} cc:{roller_center_circumference} rc:{roller_count}')
         solid = (cq.Workplane("XY")
-                 .circle(self._roller_cylinder_inner_radius - self.cage_outer_clearance)
+                 .circle(cage_outer_radius)
                  .extrude(self._roller_Z - self.interference_overlap * 2 - self.cage_axial_clearance)
                  .faces("<Z")
                  .workplane()
@@ -121,11 +122,11 @@ class Roller:
                  .hole(self.roller_bearing_diameter + self.cage_bearing_clearance)
                  .faces("<Z")
                  .workplane()
-                 .circle(self._roller_cylinder_inner_radius - self.cage_outer_clearance)
+                 .circle(cage_outer_radius)
                  .extrude(self.flanges_axial)
                  .faces(">Z")
                  .workplane(invert=True)
-                 .circle(self._roller_cylinder_inner_radius - self.cage_outer_clearance)
+                 .circle(cage_outer_radius)
                  .extrude(self.flanges_axial)
                  .faces("<Z")
                  .workplane()
