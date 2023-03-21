@@ -37,8 +37,8 @@ PARAMS = {
     'bearing center spacing': inches(0.35),
     'length overall': os.environ.get('LENGTH_OVERALL_MM', inches(12)),
     'central support gap': os.environ.get('CENTRAL_SUPPORT_GAP_MM', 0),
-    'hub sleeve distal radius': mm(25.4),
-    'hub sleeve medial radius': mm(23.0),
+    'hub sleeve distal radius': mm(25.0),
+    'hub sleeve medial radius': mm(23.5),
     'hub sleeve distal axial': mm(11.0),  # including a chamfer
     'hub sleeve interference': mm(0.1),
     'hub sleeve axial total': inches(4) - mm(4),  # less medial spacers
