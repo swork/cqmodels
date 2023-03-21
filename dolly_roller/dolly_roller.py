@@ -14,7 +14,7 @@ def inches(mm: float) -> float:
     return mm * 25.4
 
 PARAMS = {
-    'axle radius': mm(25.7) / 2,  # nominal 25.4 but measures big
+    'axle radius': os.environ.get('AXLE_DIAMETER_MM', mm(25.7)) / 2,  # nominal 25.4 but measures big
     'bearing radial clearance': mm(0.2),
     'fixed radial clearance': mm(1),  # 0 was too little in PLA, 0.5 too little for bearing slop
     'cap radial interference': mm(0.10),
@@ -37,6 +37,13 @@ PARAMS = {
     'bearing center spacing': inches(0.35),
     'length overall': os.environ.get('LENGTH_OVERALL_MM', inches(12)),
     'central support gap': os.environ.get('CENTRAL_SUPPORT_GAP_MM', 0),
+    'hub sleeve distal radius': mm(25.4),
+    'hub sleeve medial radius': mm(23.0),
+    'hub sleeve distal axial': mm(11.0),  # including a chamfer
+    'hub sleeve interference': mm(0.1),
+    'hub sleeve axial total': inches(4) - mm(4),  # less medial spacers
+    'hub sleeve axial clearance': mm(2),
+    'hub sleeve additional bearing radial clearance': mm(0.2)
 }
 
 def axle_support():
@@ -62,6 +69,37 @@ class Roller:
         self._roller_cylinder_outer_radius = self._roller_cylinder_inner_radius + self.wall_thickness
         self._axle_mating_cylinder_inner_radius = self.axle_radius + self.fixed_radial_clearance
         self._roller_Z = self.full_width / 2 - self.central_support_gap / 2
+
+    def hub(self):
+        """Wheel hub sleeve, not part of the roller but shares parts and dimensions"""
+        sleeve_axial = (self.hub_sleeve_axial_total / 2 - self.spacer_wall_thickness) - self.hub_sleeve_axial_clearance
+        radii_difference = self.hub_sleeve_distal_radius - self.hub_sleeve_medial_radius
+        solid = (cq.Workplane("XZ")
+                 .line(0, sleeve_axial)
+                 .line(self.hub_sleeve_medial_radius, 0)
+                 .line(0, -(sleeve_axial - self.hub_sleeve_distal_axial))
+                 .line(radii_difference, -radii_difference)
+                 .line(0, -(self.hub_sleeve_distal_axial - radii_difference))
+                 .close()
+                 .revolve(360)
+                 .faces("<Z")
+                 .workplane()
+                 .circle(self._roller_cylinder_inner_radius + self.hub_sleeve_additional_bearing_radial_clearance)
+                 .cutThruAll()
+                 )
+        return solid
+
+    def washer(self):
+        """Only one spacer between hub halves, so this washer spaces the race over instead."""
+        solid = (cq.Workplane("XY")
+                 .circle(self.axle_radius + self.roller_bearing_diameter)
+                 .extrude(self.flanges_axial)
+                 .faces("<Z")
+                 .workplane()
+                 .circle(self._axle_mating_cylinder_inner_radius)
+                 .cutThruAll()
+                 )
+        return solid
                        
     def roller(self):
         angled_face_Z = self._roller_Z - self.full_flat_width / 2 - self.flange_flat
@@ -148,6 +186,8 @@ def instances():
         'Roller.cap',
         'Roller.cage',
         'Roller.bearing',
+        'Roller.hub',
+        'Roller.washer',
         'axle_support'
     ]
 
