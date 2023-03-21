@@ -100,6 +100,7 @@ class Roller:
                       .circle(self.hub_sleeve_distal_radius)  # "big enough"
                       .circle(self.hub_sleeve_medial_radius + self.hub_sleeve_inner_medial_radius_adjustment)  # a neg quantity
                       .extrude(self.hub_sleeve_inner_medial_adjustment_distance)
+                      .chamfer(0.5)
                       )
         return hub - sleeve_neg
 
