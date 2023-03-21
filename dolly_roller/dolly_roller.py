@@ -41,9 +41,11 @@ PARAMS = {
     'hub sleeve medial radius': mm(23.3),
     'hub sleeve distal axial': mm(11.0),  # including a chamfer
     'hub sleeve interference': mm(0.1),
-    'hub sleeve axial total': inches(4) - mm(4),  # less medial spacers
+    'hub sleeve axial total': inches(4) - mm(4),
     'hub sleeve axial clearance': mm(2),
-    'hub sleeve additional bearing radial clearance': mm(0.2)
+    'hub sleeve additional bearing radial clearance': mm(0.2),
+    'hub sleeve inner medial radius adjustment': - mm(0.5),
+    'hub sleeve inner medial adjustment distance': mm(17),
 }
 
 def axle_support():
@@ -69,15 +71,16 @@ class Roller:
         self._roller_cylinder_outer_radius = self._roller_cylinder_inner_radius + self.wall_thickness
         self._axle_mating_cylinder_inner_radius = self.axle_radius + self.fixed_radial_clearance
         self._roller_Z = self.full_width / 2 - self.central_support_gap / 2
+        self._cage_length = self._roller_Z - self.interference_overlap * 2 - self.cage_axial_clearance
+        self._sleeve_axial = (self.hub_sleeve_axial_total / 2 - self.spacer_wall_thickness) - self.hub_sleeve_axial_clearance
 
-    def hub(self):
+    def hub_outer(self):
         """Wheel hub sleeve, not part of the roller but shares parts and dimensions"""
-        sleeve_axial = (self.hub_sleeve_axial_total / 2 - self.spacer_wall_thickness) - self.hub_sleeve_axial_clearance
         radii_difference = self.hub_sleeve_distal_radius - self.hub_sleeve_medial_radius
         solid = (cq.Workplane("XZ")
-                 .line(0, sleeve_axial)
+                 .line(0, self._sleeve_axial)
                  .line(self.hub_sleeve_medial_radius, 0)
-                 .line(0, -(sleeve_axial - self.hub_sleeve_distal_axial))
+                 .line(0, -(self._sleeve_axial - self.hub_sleeve_distal_axial))
                  .line(radii_difference, -radii_difference)
                  .line(0, -(self.hub_sleeve_distal_axial - radii_difference))
                  .close()
@@ -89,14 +92,33 @@ class Roller:
                  )
         return solid
 
+    def hub_inner(self):
+        hub = self.hub_outer()
+
+        sleeve_neg = (cq.Workplane("XY")
+                      .workplane(-self._sleeve_axial, invert=True)
+                      .circle(self.hub_sleeve_distal_radius)  # "big enough"
+                      .circle(self.hub_sleeve_medial_radius + self.hub_sleeve_inner_medial_radius_adjustment)  # a neg quantity
+                      .extrude(self.hub_sleeve_inner_medial_adjustment_distance)
+                      )
+        return hub - sleeve_neg
+
     def washer(self):
-        """Only one spacer between hub halves, so this washer spaces the race over instead."""
+        """Space the two hub races."""
+        # overall length minus what's used: 2xinterference_overlap (caps), 2xcage lengths, 1xcage_axial_clearance
+        washer_length = (
+            self.hub_sleeve_axial_total - (
+                2 * self.interference_overlap
+                + 2 * self._cage_length
+                + self.cage_axial_clearance
+            )
+        )
         solid = (cq.Workplane("XY")
                  .circle(self.axle_radius + self.roller_bearing_diameter)
-                 .extrude(self.flanges_axial)
+                 .extrude(washer_length)
                  .faces("<Z")
                  .workplane()
-                 .circle(self._axle_mating_cylinder_inner_radius)
+                 .circle(self._axle_mating_cylinder_inner_radius + mm(2))
                  .cutThruAll()
                  )
         return solid
@@ -152,7 +174,7 @@ class Roller:
         print(f'cr:{roller_center_radius} cc:{roller_center_circumference} rc:{roller_count}')
         solid = (cq.Workplane("XY")
                  .circle(cage_outer_radius)
-                 .extrude(self._roller_Z - self.interference_overlap * 2 - self.cage_axial_clearance)
+                 .extrude(self._cage_length)
                  .faces("<Z")
                  .workplane()
                  .polygon(roller_count, roller_center_radius * 2, forConstruction=True)
@@ -179,7 +201,8 @@ def instances():
         'Roller.spacer',
         'Roller.cap',
         'Roller.cage',
-        'Roller.hub',
+        'Roller.hub_outer',
+        'Roller.hub_inner',
         'Roller.washer',
         'axle_support'
     ]
