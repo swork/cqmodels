@@ -17,7 +17,8 @@ PARAMS = {
     'axle radius': os.environ.get('AXLE_DIAMETER_MM', mm(25.7)) / 2,  # nominal 25.4 but measures big
     'bearing radial clearance': mm(0.2),
     'fixed radial clearance': mm(1),  # 0 was too little in PLA, 0.5 too little for bearing slop
-    'cap radial interference': mm(0.10),
+    'cap radial clearance': mm(2),
+    'cap radial interference': mm(0.15),
     'axial clearance': mm(1),
     'wall thickness': mm(4.0),  # 2.5 roller surface was flimsy in PLA
     'full width': inches(4.0),
@@ -29,6 +30,7 @@ PARAMS = {
     'spacer wall thickness': mm(2.5),
     'flanges axial': mm(3),
     'interference overlap': mm(8),
+    'hub cap interference overlap': mm(5.5),
     'cage outer clearance': mm(1.35),  # troublesome: sets click-in for rollers
     'cage inner clearance': mm(1),
     'cage thickness': mm(4.4),  # close control over click-in for rollers, but still varies with inner circle size
@@ -114,7 +116,7 @@ class Roller:
                 + 2 * self._cage_length
                 + self.cage_axial_clearance
             )
-        )
+        ) - mm(7)  # forgot hubs are inset a bit, and somehow missed by more too.
         solid = (cq.Workplane("XY")
                  .circle(self.axle_radius + self.roller_bearing_diameter)
                  .extrude(washer_length)
@@ -156,7 +158,19 @@ class Roller:
                  .cutThruAll())
         return solid
 
-    def cap(self):
+    def hub_cap(self):
+        interference_outer_radius = self.axle_radius + self.roller_bearing_diameter + self.bearing_radial_clearance + self.cap_radial_interference
+        surface_outer_radius = self._roller_cylinder_outer_radius
+        solid = (cq.Workplane("XY")
+                 .circle(surface_outer_radius)
+                 .extrude(self.flanges_axial)
+                 .circle(interference_outer_radius)
+                 .extrude(self.hub_cap_interference_overlap)
+                 .circle(self.axle_radius + self.cap_radial_clearance)
+                 .cutThruAll())
+        return solid
+
+    def roller_cap(self):
         interference_outer_radius = self.axle_radius + self.roller_bearing_diameter + self.bearing_radial_clearance + self.cap_radial_interference
         surface_outer_radius = self._roller_cylinder_outer_radius
         solid = (cq.Workplane("XY")
@@ -164,7 +178,7 @@ class Roller:
                  .extrude(self.flanges_axial)
                  .circle(interference_outer_radius)
                  .extrude(self.interference_overlap)
-                 .circle(self._axle_mating_cylinder_inner_radius)
+                 .circle(self.axle_radius + self.cap_radial_clearance)
                  .cutThruAll())
         return solid
 
@@ -201,7 +215,8 @@ def instances():
     return [
         'Roller.roller',
         'Roller.spacer',
-        'Roller.cap',
+        'Roller.hub_cap',
+        'Roller.roller_cap',
         'Roller.cage',
         'Roller.hub_outer',
         'Roller.hub_inner',
