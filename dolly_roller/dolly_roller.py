@@ -45,7 +45,7 @@ PARAMS = {
     'hub sleeve axial clearance': mm(2),
     'hub sleeve additional bearing radial clearance': mm(0.2),
     'hub sleeve inner medial radius adjustment': - mm(0.5),
-    'hub sleeve inner medial adjustment distance': mm(17),
+    'hub sleeve inner medial adjustment distance': mm(19),
 }
 
 def axle_support():
@@ -100,6 +100,7 @@ class Roller:
                       .circle(self.hub_sleeve_distal_radius)  # "big enough"
                       .circle(self.hub_sleeve_medial_radius + self.hub_sleeve_inner_medial_radius_adjustment)  # a neg quantity
                       .extrude(self.hub_sleeve_inner_medial_adjustment_distance)
+                      .edges("<Z")
                       .chamfer(0.5)
                       )
         return hub - sleeve_neg
