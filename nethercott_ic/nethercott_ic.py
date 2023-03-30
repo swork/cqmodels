@@ -24,7 +24,7 @@ class Fittings:
         # dimensions related to the inverted deck block
         self.block_foot_Y = 16  # so half this for Y screw hole centerline offset, and end radius
         self.block_Y_center_offset = self.block_foot_Y / 2 + 1  # 1 from foot edge
-        self.screw_hole_X_offset = 11.25
+        self.screw_hole_X_offset = 10.25
         self.screw_hole_radius = 2
         self.block_X_thru_width = 10
         self.line_clearance_radius = 4.0
@@ -40,23 +40,42 @@ class Fittings:
         # Top plane
         top = (
             cq.Sketch()
-            .push([(- (self.screw_hole_X_offset), self.block_Y_center_offset + 0.01),
-                   (   self.screw_hole_X_offset , self.block_Y_center_offset + 0.01)])
-            .circle(self.block_foot_Y / 2)  # + self.top_flare)
-            .push([(0, 0)])
-            .circle(self.line_clearance_radius + self.top_flare)
+
+            # .hull() blows up if circles touch or overlap, so try arc segments instead
+            .arc((-self.screw_hole_X_offset, self.block_Y_center_offset + 0.01),
+                 self.block_foot_Y / 2,
+                 0,
+                 -160,
+                 forConstruction=True)
+            .arc((self.screw_hole_X_offset, self.block_Y_center_offset + 0.01),
+                 self.block_foot_Y / 2,
+                 0,
+                 -160,
+                 forConstruction=True)
+            .arc((0,0),
+                 self.line_clearance_radius + self.top_flare,
+                 -90,
+                 -270)
+
+            # .push([(- (self.screw_hole_X_offset), self.block_Y_center_offset + 0.01),
+            #        (   self.screw_hole_X_offset , self.block_Y_center_offset + 0.01)])
+            # .circle(self.block_foot_Y / 2)  # + self.top_flare)
+            # .push([(0, 0)])
+            # .circle(self.line_clearance_radius + self.top_flare)
+
             .faces()
             .hull()
         )
 
         # Extrude to solid and recess for deck-block's metal foot
+        over = 0.5
         arcPoints = [
-            (-(self.screw_hole_X_offset), self.block_Y_center_offset - self.block_foot_Y/2 - 1),
-            (-(self.screw_hole_X_offset + self.block_foot_Y / 2 + 1), self.block_Y_center_offset),
-            (-(self.screw_hole_X_offset), self.block_Y_center_offset + self.block_foot_Y/2 + 1),
-            (+(self.screw_hole_X_offset), self.block_Y_center_offset + self.block_foot_Y/2 + 1),
-            (+(self.screw_hole_X_offset + self.block_foot_Y / 2 + 1), self.block_Y_center_offset),
-            (+(self.screw_hole_X_offset), self.block_Y_center_offset - self.block_foot_Y/2 - 1),
+            (-(self.screw_hole_X_offset), self.block_Y_center_offset - self.block_foot_Y/2 - over),
+            (-(self.screw_hole_X_offset + self.block_foot_Y / 2 + over), self.block_Y_center_offset),
+            (-(self.screw_hole_X_offset), self.block_Y_center_offset + self.block_foot_Y/2 + over),
+            (+(self.screw_hole_X_offset), self.block_Y_center_offset + self.block_foot_Y/2 + over),
+            (+(self.screw_hole_X_offset + self.block_foot_Y / 2 + over), self.block_Y_center_offset),
+            (+(self.screw_hole_X_offset), self.block_Y_center_offset - self.block_foot_Y/2 - over),
         ]
         block = (
             cq.Workplane("XY")
@@ -126,15 +145,15 @@ class Fittings:
                           .workplane(deck_radius - inset_into_deck +30.5, origin=(-30, 0, 0))  # where is the fudge need coming from?
                           .cylinder(height=self.extent_X * 3, radius=deck_radius, direct=(1, 0, 0), combine="s")
                           )
+
+        # Nice idea here but we'll just fix it up with sandpaper
+        # neg_deck = (
+        #     cq.Workplane("YZ")
+        #     .workplane(100, (0, -(deck_radius - inset_into_deck)))
+        #     .cylinder(height=self.extent_X * 2, radius=deck_radius)
+        # )
+
         return filleted_block
-
-        neg_deck = (
-            cq.Workplane("YZ")
-            .workplane(0, (0, -(deck_radius - inset_into_deck)))
-            .cylinder(height=self.extent_X * 2, radius=deck_radius)
-
-            .copyWorkplane(base)
-        )
 
     def deck_turn_block_decorative(self):
         # Abs references are to the center of the line hole. Screw holes
