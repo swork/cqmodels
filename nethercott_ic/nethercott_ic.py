@@ -81,15 +81,6 @@ class Fittings:
             cq.Workplane("XY")
             .placeSketch(top)
             .extrude(self.extent_Z, taper=-12)
-
-            # cut a recess for the block's metal feet
-            .copyWorkplane(base)
-            .moveTo(*arcPoints[0])
-            .threePointArc(arcPoints[1], arcPoints[2])
-            .lineTo(*arcPoints[3])
-            .threePointArc(arcPoints[4], arcPoints[5])
-            .close()
-            .extrude(1, combine='cut')
         )
 
         # Abs references are to the center of the line hole. Screw holes
@@ -116,6 +107,26 @@ class Fittings:
             .extrude(self.extent_Z)
 
         )
+        block = block - neg_thru_holes
+
+        # break the top surface corners
+        block = (
+            block
+            .faces("|Z")
+            .fillet(1)
+        )
+
+        block = (
+            block
+            # cut a recess for the block's metal feet
+            .copyWorkplane(base)
+            .moveTo(*arcPoints[0])
+            .threePointArc(arcPoints[1], arcPoints[2])
+            .lineTo(*arcPoints[3])
+            .threePointArc(arcPoints[4], arcPoints[5])
+            .close()
+            .extrude(1, combine='cut')
+        )
 
         # Approximate the deck's more-or-less conical top surface (where the
         # block sits; it flares to planes nearer the gunwales) with a cylinder.
@@ -136,7 +147,7 @@ class Fittings:
         deck_radius = 622.3  # really, do the math here.
         inset_into_deck = 0.72  # and here
 
-        filleted_block = ((block - neg_thru_holes)
+        filleted_block = (block
                           .faces(">Z[-2]")
                           .edges("|Y")
                           .fillet(1.5)
