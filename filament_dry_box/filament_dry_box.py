@@ -64,6 +64,11 @@ class FilamentDryBox:
         )
         self.bearing_step_Y = (self.roller_bearing_center_plane_spacing / 2
                                - self.bearing_width / 2)
+        self.arm_bearing_r = (self.bearing_id / 2
+                              - self.bearing_clearance_inner)  # DRY violation
+        self.arm_step_r = self.arm_bearing_r + self.bearing_inner_race_face_width
+        self.arm_fillet_r = min(self.bearing_fillet_r,
+                                self.arm_step_r - self.arm_bearing_r) - 0.01
 
 
     def _draw_roller_profile(self, wp):
@@ -159,7 +164,7 @@ class FilamentDryBox:
          +-\  by fillet
          | |
          | |  bearing_r
-         | ++             step_position
+         | ++             self.bearing_step_Y
          |  |   step_r
          |  |
          |  \             cone_distal
@@ -171,23 +176,19 @@ class FilamentDryBox:
          +-----+
 
         """
-        step_position = (self.roller_bearing_center_plane_spacing / 2
-                         - self.bearing_width / 2)
-        arm_length = step_position + (self.bearing_width / 2)
-        bearing_r = (self.bearing_id / 2
-                     - self.bearing_clearance_inner)
-        step_r = bearing_r + self.bearing_inner_race_face_width
+        # Stick out extra so interference nibs can touch entire inner bearing race
+        arm_length = self.bearing_step_Y + self.bearing_width + self.arm_fillet_r
         cone_medial = ((self.spine_width - 2)
                        + self.roller_to_spine_clearance * 2  # each side of surface
                        + self.roller_bush_surface_width)
-        cone_distal = step_position - self.ideal_cone_to_step
+        cone_distal = self.bearing_step_Y - self.ideal_cone_to_step
         if cone_distal < cone_medial:  # for looks, so constrain away if needed
             cone_distal = cone_medial
         arm_bush_r = self.roller_bush_r - self.roller_bush_clearance
-        print(f'step_position:{step_position}')
+        print(f'step_position:{self.bearing_step_Y}')
         print(f'arm_length:{arm_length}')
-        print(f'bearing_r:{bearing_r}')
-        print(f'step_r:{step_r}')
+        print(f'bearing_r:{self.arm_bearing_r}')
+        print(f'step_r:{self.arm_step_r}')
         print(f'cone_medial:{cone_medial}')
         print(f'cone_distal:{cone_distal}')
         print(f'arm_bush_r:{arm_bush_r}')
@@ -196,15 +197,29 @@ class FilamentDryBox:
             # clockwise from bottom right
             .moveTo(0, 0)
             .lineTo(0, arm_length)
-            .lineTo(bearing_r, arm_length)
-            .lineTo(bearing_r, step_position)
-            .lineTo(step_r, step_position)
-            .lineTo(step_r, cone_distal)
+            .lineTo(self.arm_bearing_r, arm_length)
+            .lineTo(self.arm_bearing_r, self.bearing_step_Y)
+            .lineTo(self.arm_step_r, self.bearing_step_Y)
+            .lineTo(self.arm_step_r, cone_distal)
             .lineTo(arm_bush_r, cone_medial)  # the diagonal
             .lineTo(arm_bush_r, 0)
             .close()
         )
-        return profile
+        nibs = (
+            cq.Workplane("XY", (0, 0, - self.bearing_step_Y))
+            .workplane(invert=True)
+            .polygon(
+                self.bearing_nibs_count_inner,
+                self.arm_bearing_r * 2,  # diameter, sheesh
+                forConstruction=True
+            )
+            .vertices()
+            .circle(self.bearing_interference_inner)
+            .extrude(self.bearing_width)
+            .edges()
+            .fillet(self.bearing_interference_outer - 0.01)
+        )
+        return profile + nibs
 
     def _draw_spine_profile(self, wp):
         """Center spine profile.
@@ -276,19 +291,13 @@ class FilamentDryBox:
         the inner surface of the arms. Intended to be printed from the side
         with supports for the overhang (one side of the spine).
         """
-        bearing_r = (self.bearing_id / 2
-                     - self.bearing_clearance_inner)  # DRY violation
-        step_r = bearing_r + self.bearing_inner_race_face_width  # DRY violation
-        arm_fillet_r = min(self.bearing_fillet_r,
-                       step_r - bearing_r) - 0.01
-
         arm = (
             self._draw_arm_profile(
                 cq.Workplane("XZ")
             )
             .revolve(360, (0, 0), (0, 1))
             .edges()
-            .fillet(arm_fillet_r)
+            .fillet(self.arm_fillet_r)
         )
         two_arms = arm.add(arm.rotate((0, 0, 0), (1, 0, 0), 180))
         two_arms_A = two_arms.translate((-self.roller_center_spacing/2, self.roller_center_height, 0))
