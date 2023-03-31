@@ -301,7 +301,7 @@ class FilamentDryBox:
             )
             .extrude(self.leg_thickness)
             .edges()
-            .fillet(2)  # just soften things a bit
+            .fillet(1.4)  # just soften things a bit
             .rotate((0,0,0), (1,0,0), 90)
             .rotate((0,0,0), (0,0,1), 180)
         )
@@ -317,7 +317,7 @@ class FilamentDryBox:
                 .workplane(-self.spine_width / 2)
             )
             .extrude(self.spine_width)
-            #.edges()
-            #.fillet(2)
+            .edges()
+            .fillet(1)
         )
         return block.add(legs).add(four_arms)
