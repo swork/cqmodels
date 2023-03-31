@@ -34,10 +34,10 @@ class FilamentDryBox:
             'bearing fillet r': 1,  # a bearing measurement
             'bearing inner race face width': 1.8,
             'bearing clearance outer': 0.2,     # extra space where nibs aren't
-            'bearing interference outer': 0.2,  # nibs inward against bearing surface
+            'bearing interference outer': 0.25,  # nibs inward against bearing surface
             'bearing nibs count outer': 8,
             'bearing clearance inner': 0.1,
-            'bearing interference inner': 0.2,  # support makes these dims inaccurate
+            'bearing interference inner': 0.25,  # support makes these dims inaccurate
             'bearing nibs count inner': 6,
             'spine width': 10,
             'leg fillet r': 8,
