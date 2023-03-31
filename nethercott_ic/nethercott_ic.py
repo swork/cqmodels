@@ -152,17 +152,12 @@ class Fittings:
                           .edges("|Y")
                           .fillet(1.5)
 
-                          .faces(">Z")
-                          .workplane(deck_radius - inset_into_deck +30.5, origin=(-30, 0, 0))  # where is the fudge need coming from?
-                          .cylinder(height=self.extent_X * 3, radius=deck_radius, direct=(1, 0, 0), combine="s")
+                          # Fit us to the deck with sandpaper, if even needed. This bottom-surface radius
+                          # screws up support and rafting.
+                          # .faces(">Z")
+                          # .workplane(deck_radius - inset_into_deck +30.5, origin=(-30, 0, 0))  # where is the fudge need coming from?
+                          # .cylinder(height=self.extent_X * 3, radius=deck_radius, direct=(1, 0, 0), combine="s")
                           )
-
-        # Nice idea here but we'll just fix it up with sandpaper
-        # neg_deck = (
-        #     cq.Workplane("YZ")
-        #     .workplane(100, (0, -(deck_radius - inset_into_deck)))
-        #     .cylinder(height=self.extent_X * 2, radius=deck_radius)
-        # )
 
         return filleted_block
 
