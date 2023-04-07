@@ -177,7 +177,7 @@ class ShroudRailSpacers:
         self.pin_clearance = mm(0.2)
         self.wall_thickness = mm(2.0)
         self.end_bracket_inner_width = inches(0.4)
-        self.middle_bracket_inner_width = inches(0.3)
+        self.middle_bracket_inner_width = inches(0.35)
         self.boat_bracket_thickness = mm(1.0)
 
     def any_degree(self, bracket_inner_width, break_degree):
