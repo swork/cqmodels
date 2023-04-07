@@ -7,7 +7,17 @@ import cadquery as cq
 import math
 
 def instances():
-    return [ 'Fittings.deck_turn_block_basic' ]
+    return [
+        'Fittings.deck_turn_block_basic',
+        'ShroudRailSpacers.zero_degree',
+        'ShroudRailSpacers.twelve_degree'
+    ]
+
+def mm(x):
+    return x
+
+def inches(x):
+    return x * 25.4
 
 class Fittings:
     def __init__(self):
@@ -161,140 +171,37 @@ class Fittings:
 
         return filleted_block
 
-    def deck_turn_block_decorative(self):
-        # Abs references are to the center of the line hole. Screw holes
-        # are +Y and +/-X from there. Block cutout is +Y from there. Z is
-        # the plane where this part touches the deck, before accounting for
-        # the curvature of the deck (which will be cut away from this
-        # underside). Negatives for these holes:
-        neg_thru_holes = (
+class ShroudRailSpacers:
+    def __init__(self):
+        self.pin_radius = mm(2.5)
+        self.pin_clearance = mm(0.2)
+        self.wall_thickness = mm(2.0)
+        self.end_bracket_inner_width = inches(0.4)
+        self.middle_bracket_inner_width = inches(0.3)
+        self.boat_bracket_thickness = mm(1.0)
+
+    def any_degree(self, bracket_inner_width, break_degree):
+        inner_radius = self.pin_radius + self.pin_clearance
+        outer_radius = inner_radius + self.wall_thickness
+        width = bracket_inner_width - self.boat_bracket_thickness
+        cyl = (
             cq.Workplane("XY")
-            .moveTo(0, -(self.extent_Y_neg))
-            .rect(self.block_X_thru_width,
-                  self.extent_Y_pos + self.extent_Y_neg,
-                  centered=(True, False))
-            .extrude(self.extent_Z)
-            .end()
-            .end()
-            .circle(self.line_clearance_radius)
-            .extrude(self.extent_Z)
-
-            .faces("<Z").workplane()
-            .rect(self.screw_hole_X_offset * 2, self.block_Y_center_offset * 2,
-                  centered=True, forConstruction=True)
-            .vertices(">Y")
-            .circle(2)  # two circles
-            .extrude(self.extent_Z)
+            .circle(outer_radius)
+            .circle(inner_radius)
+            .extrude(width)
         )
-
-        # Approximate the deck's conical top surface (where the block sits;
-        # it flares to planes nearer the gunwales) with a cylinder. The
-        # error is insignificant and it saves us making port/starboard
-        # blocks. Deck is 2-1/8" higher at center than a plane intersecting
-        # it 10" to either side. Right triangle acute angle is half the
-        # tangent's acute angle, and the two lines perpendicular to the two
-        # tangents cross at the center of the circle. Acute angle of
-        # triangle is inverse-tangent(0.2125) -> 12 degrees. So acute angle
-        # of tangent is 24 degrees. 90-24=66 is larger angle of right tri
-        # whose hypotenuse ends at center. 10" is short side, so
-        # inverse-sine(66) * 10 gives radius of deck: 24.5in, 622.3mm.
-        # Then, how deep to set block into that cylinder so its edges
-        # intersect it? Similar calcs the other direction. Extent_Y is 15mm
-        # either side of midpoint and it's insiginificantly different from
-        # the corresponding arc length, 15=(2*pi*622.3*theta)/360 so the
-        # intersected angle is 1.38 degrees. So the short side of the right
-        # triangle with twice this acute angle and hypoteneuse: 0.72mm.
-        deck_radius = 622.3  # really, do the math here.
-        inset_into_deck = 0.72  # and here
-        neg_deck = (
-            cq.Workplane("YZ")
-            .workplane(0, (0, -(deck_radius - inset_into_deck)))
-            .cylinder(height=self.extent_X * 2, radius=deck_radius)
+        neg_cyl = (
+            cq.Workplane(cq.Plane.XY().rotated((break_degree, 0, 0)))
+            .workplane(width/2)
+            .circle(outer_radius * 3)  # way big enough
+            .extrude(width * 3)  # way far enough
         )
-        
-        # For grins, make the solid as the union of lofts between circles
-        # around the screw and line holes (before cutting those out, along
-        # with the clearance for the inverted deck-block)
-        line_hole_foot_radius = self.line_clearance_radius + self.foot_flare_larger
-        block_screw_flange_radius = self.block_foot_Y / 2 + self.top_flare
-        block_screw_foot_radius = block_screw_flange_radius + self.foot_flare_smaller
+        return cyl - neg_cyl
 
-        line_to_L = (
-            cq.Workplane("XY")
-            .circle(line_hole_foot_radius)
-            .workplane(self.extent_Z)
-            .rect(self.screw_hole_X_offset * 2,
-                  self.block_Y_center_offset * 2,
-                  forConstruction=True)
-            .vertices(">Y")
-            .vertices("<X")
-            .circle(block_screw_flange_radius)
-            .loft()
-            .shapes()[0]
-        )
 
-        line_to_R = (
-            cq.Workplane("XY")
-            .circle(line_hole_foot_radius)
-            .workplane(self.extent_Z)
-            .rect(self.screw_hole_X_offset * 2,
-                  self.block_Y_center_offset * 2,
-                  forConstruction=True)
-            .vertices(">Y")
-            .vertices(">X")
-            .circle(block_screw_flange_radius)
-            .loft()
-            .shape()
-        )
-        line_to_screws = line_to_L.locate(cq.Workplane("XY")) + line_to_R.locate(cq.Workplane("XY"))
+    def zero_degree(self):
+        return self.any_degree(self.middle_bracket_inner_width, 0.0)
 
-        L_to_R = (
-            cq.Workplane("XY")
-            .rect(self.screw_hole_X_offset * 2,
-                  self.block_Y_center_offset * 2,
-                  forConstruction=True)
-            .vertices(">Y")
-            .vertices("<X")
-            .circle(block_screw_foot_radius)
-            .end()
-            .end()
-            .end()
-            .end()
-            .workplane(self.extent_Z)
-            .rect(self.screw_hole_X_offset * 2,
-                  self.block_Y_center_offset * 2,
-                  forConstruction=True)
-            .vertices(">Y")
-            .vertices(">X")
-            .circle(block_screw_flange_radius)
-            .loft()
-        )
+    def twelve_degree(self):
+        return self.any_degree(self.end_bracket_inner_width, 12.0)
 
-        R_to_L = (
-            cq.Workplane("XY")
-            .rect(self.screw_hole_X_offset * 2,
-                  self.block_Y_center_offset * 2,
-                  forConstruction=True)
-            .vertices(">Y")
-            .vertices(">X")
-            .circle(block_screw_foot_radius)
-            .end()
-            .end()
-            .end()
-            .end()
-            .workplane(self.extent_Z)
-            .rect(self.screw_hole_X_offset * 2,
-                  self.block_Y_center_offset * 2,
-                  forConstruction=True)
-            .vertices(">Y")
-            .vertices("<X")
-            .circle(block_screw_flange_radius)
-            .loft()
-        )
-        return line_to_screws
-        return (R_to_L + line_to_screws + L_to_R)
-
-        return R_to_L.union(L_to_R)
-
-        return solid
-        return (solid - neg_deck) - neg_thru_holes
