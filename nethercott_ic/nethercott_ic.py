@@ -4,16 +4,20 @@ deck_turn_block: at medial end of barber car tracks
 """
 
 import cadquery as cq
+import types
 import math
 
 def instances():
     return [
         'Fittings.deck_turn_block_basic',
         'ShroudRailSpacers.zero_degree',
-        'ShroudRailSpacers.twelve_degree'
+        'ShroudRailSpacers.twelve_degree',
     ]
 
 def mm(x):
+    return x
+
+def degrees(x):
     return x
 
 def inches(x):
@@ -204,4 +208,5 @@ class ShroudRailSpacers:
 
     def twelve_degree(self):
         return self.any_degree(self.end_bracket_inner_width, 12.0)
+
 

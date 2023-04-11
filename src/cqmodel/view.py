@@ -81,6 +81,13 @@ class ModelVisualizer:
 
     def converge_viewers(self, stls):
         """Make sure a viewer is running for each .stl file in stls, and no extras."""
+
+        # Clean up viewers that died, maybe err'd out, maybe user killed
+        for s in list(self._viewers.keys()):
+            if not self._viewers[s].is_alive():
+                self._viewers[s].join()
+                del self._viewers[s]
+
         needed = stls - self._viewers.keys()
         extraneous = set(self._viewers.keys()) - stls
         for stl_file in extraneous:
@@ -88,9 +95,12 @@ class ModelVisualizer:
             self._viewers[stl_file].join()
             del self._viewers[stl_file]
         for stl_file in needed:
-            p = mp.Process(target=view_stl, args=(stl_file,))
-            p.start()
-            self._viewers[stl_file] = p
+            if os.path.isfile(stl_file):
+                p = mp.Process(target=view_stl, args=(stl_file,))
+                p.start()
+                self._viewers[stl_file] = p
+            else:
+                print(f'Expected {stl_file} but no.')
 
     def run_sync(self):
         while True:
