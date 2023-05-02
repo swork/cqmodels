@@ -7,11 +7,11 @@ def instances():
     return [
         'CenterBlock.sheave',
         'CenterBlock.race',
-        'CenterBlock.sheave_bolt_space',
+        'CenterBlock.sheave_bolt_space_sym',
         'CenterBlock.nut_space_endwise',
         #'CenterBlock.nut_space_sidewise',
         'CenterBlock.block',
-        'CenterBlock.sheave_tower_cars'
+        #'CenterBlock.sheave_tower_cars'  # segfault in here somewhere
     ]
 
 def mm(x):
@@ -26,6 +26,8 @@ def inches(x):
 class CenterBlock:
     """A double-block at the centerline of the cockpit turning the jib-track
     adjusters forward.
+
+    (Or maybe a bigger consolidated block for all the control line sheaves.)
 
     Two lines cross, so offset the two blocks vertically, and adjust axle
     angles to lead to cleats. The lines are near enough horizontal going
@@ -60,8 +62,7 @@ class CenterBlock:
         self.ball_center_inset = self.bearing_ball_radius + mm(1.5)  # ball center from cheek
         self.race_axle_clearance = mm(0.15)  # radius, so per side
         self.block_axle_clearance = mm(0.15)  # addl radius
-        self.race_cheek_clearance = mm(0)  # negative if we need an interference
-        self.race_center_clearance = mm(1.0)  # on both races so 2x this. Neg for interference
+        self.race_center_clearance = mm(0.0)  # on both races so 2x this. Neg for interference
         self.race_arc_radius_line_tilt = degrees(60)  # from parallel to axle
         self.inner_race_arc_center_offset = mm(0.75)  # along tilted line
         self.outer_race_arc_center_offset = mm(0.75)  # along tilted line
@@ -96,6 +97,9 @@ class CenterBlock:
 
         """
         r = types.SimpleNamespace()
+
+        n = self.ball_circle_radius * 2 * math.pi / (self.bearing_ball_radius * 2)
+        print(f'{int(n)} balls fit with a gap of {round(n - int(n), 2)} balls.')
 
         r.ball_center_x = self.ball_circle_radius
         r.ball_center_y = round(
@@ -238,8 +242,12 @@ class CenterBlock:
         r = self._bearing_params()
         print(r)
         race_axle_cylinder_radius = self.axle_radius + self.race_axle_clearance
-        race_cheek_y = (self.sheave_thickness/2) - self.race_cheek_clearance
-        assert race_cheek_y > r.inner_arc_outer_end_y
+        race_cheek_y = (self.sheave_thickness/2)
+        try:
+            assert race_cheek_y > r.inner_arc_outer_end_y
+        except:
+            print(f'Whoops, cheek:{race_cheek_y} vs arc_y:{r.inner_arc_outer_end_y}')
+            raise
         race = (
             cq.Workplane("XZ")
 
@@ -321,8 +329,11 @@ class CenterBlock:
             * tangent_extension_x_distance
         )
         print(f'rolling_radius:{self.rolling_radius} sheave_inner_radius:{sheave_inner_radius} tangent_extension_distance:({round(tangent_extension_x_distance, 2)},{round(tangent_extension_y_distance)})')
-        assert(r.sheave_race_arc_inner_end_y > tangent_extension_y_distance)
-
+        try:
+            assert(r.sheave_race_arc_inner_end_y > tangent_extension_y_distance)
+        except:
+            print(f'Whoops, inner_y:{r.sheave_race_arc_inner_end_y} vs ext:{tangent_extension_y_distance}')
+            raise
 
         # FDM also wants the outer notch of the sheave where the line rides to
         # stay within 45 of vertical with the sheave on its side, so we'll make
@@ -440,9 +451,10 @@ class CenterBlock:
 
         return sheave
 
-    def sheave_bolt_space(self):
+    def sheave_bolt_space_asym(self):
         """Negative space for the sheave and races defined above, along with an
-        axle bolt and nut and paths for their assembly.
+        axle bolt and nuty.
+
         """
         r = self._bearing_params()
 
@@ -577,6 +589,111 @@ class CenterBlock:
         )
         return bolt
 
+    def sheave_bolt_space_sym(self):
+        """Negative space for the sheave and races defined above, along with an
+        axle bolt and nuty.
+
+        """
+        r = self._bearing_params()
+
+        bolt_hole_radius = self.axle_radius + self.block_axle_clearance
+
+        sheave_space_top_y = (
+            self.sheave_thickness / 2
+            + self.sheave_cheek_clearance
+        )
+        sheave_space_outer_x = (
+            r.sheave_largest_radius
+            + self.sheave_end_clearance
+        )
+        bolt_head_face_inner_y = (
+            sheave_space_top_y
+            + self.bolt_head_face_depth
+        )
+        bolt_head_face_outer_y = (
+            (
+                math.cos(math.radians(self.bolt_head_face_angle))
+                * (
+                    self.bolt_head_hole_radius
+                    - bolt_hole_radius
+                )
+            )
+            + bolt_head_face_inner_y
+        )
+        line_space_radius = (
+            self.line_radius
+            + self.block_line_radius_clearance
+        )
+
+        # Two pieces, first the bolt-and-sheave space by revolution,
+        # then options for nut insertion from end or side.
+        # Origin at center of sheave.
+        hole = (
+            cq.Workplane("XZ")
+            .moveTo(sheave_space_outer_x + line_space_radius, 0)
+            .radiusArc(
+                (
+                    sheave_space_outer_x,
+                    line_space_radius
+                ),
+                - line_space_radius  # counterclockwise
+            )
+        )
+
+        if abs(line_space_radius - sheave_space_top_y) > mm(0.1):
+            hole = (
+                hole
+                .lineTo(
+                    sheave_space_outer_x,
+                    sheave_space_top_y
+                )
+            )
+
+        hole = (
+            hole
+            .lineTo(
+                bolt_hole_radius,
+                sheave_space_top_y
+            )
+
+            .lineTo(
+                bolt_hole_radius,
+                bolt_head_face_inner_y
+            )
+
+            # angled so we can work with flat-head screws, but usu. 90
+            .lineTo(
+                self.bolt_head_hole_radius,
+                bolt_head_face_outer_y
+            )
+
+            # way up intended past surface of whatever we're embedded in
+            .lineTo(
+                self.bolt_head_hole_radius,
+                self.bolt_head_hole_clearance
+            )
+
+            .lineTo(
+                0,
+                self.bolt_head_hole_clearance
+            )
+
+            .lineTo(0, 0)
+
+            .close()
+
+            .revolve(
+                180,
+                (0, 0, 0),
+                (0, 1, 0)
+            )
+        )
+
+        andrestofcircle = hole.mirror("XZ", union=True)
+        andotherhalf = andrestofcircle.mirror("XY", union=True)
+        andotherhalf.findSolid().fix()
+        return andotherhalf
+
     def nut_space_endwise(self):
         nut_space_top_y = (
             self.sheave_thickness / 2
@@ -628,7 +745,7 @@ class CenterBlock:
         )
         return side_profile_inner
 
-    def _tower(self, baseX, baseY, topX, topY, Z):
+    def _tower(self, baseX, baseY, topX, topY, Z, bolt_offset_from_end):
         cqmodel.util.infoize()
         tower = (
             cq.Workplane("XY")
@@ -636,30 +753,36 @@ class CenterBlock:
             .workplane(Z)
             .rect(topX, topY)
             .loft()
+            .edges("|X and (not <Z)")
+#            .fillet(bolt_offset_from_end)
+            #.edges(">Z and <Y")
+            #.fillet(bolt_offset_from_end)
         )
 
         # print(f'tower:{tower}')
         tower = (
             tower
             .edges("not(<Z)")
-            .fillet(5)
+#            .fillet(5)
         )
         print(f'tower2:{tower}')
 
         sheave_hole = (
             cq.Workplane("XY")
-            .add(self.sheave_bolt_space().findSolid())
+            .add(self.sheave_bolt_space_sym().findSolid())
             .rotate(cq.Vector(), (0, 1, 0), 90)
-            .translate((0, 0, Z - 12))
+            .translate((0, 0, Z - bolt_offset_from_end))
         )
         # print(f'hole:{sheave_hole}')
         tower = (
             tower
-            .center(0, -inches(0.3))
             .cut(sheave_hole)
+            # .edges()  # all that remain
+            # .fillet(0.04)
         )
+        tower.findSolid().fix()
         # print(f'tower3:{tower}')
         return tower
 
     def sheave_tower_cars(self):
-        return self._tower(23, 30, 23, 30, 45)
+        return self._tower(28, 30, 23, 25, 45, 10)
