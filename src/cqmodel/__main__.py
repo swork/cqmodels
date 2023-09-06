@@ -9,7 +9,6 @@ from . import prepare
 
 def main():
     p = argparse.ArgumentParser()
-    p.add_argument('action', help="What to do?", choices=['show','view','use'])
     p.add_argument('model', help="Python CadQuery model file.py")
     p.add_argument('--config', '--configuration', '--configure',
                    '-c', type=str, default=None)
@@ -42,10 +41,7 @@ def main():
     sys.path.insert(0, dirname(a.model))
     model = importlib.import_module(model_modulename)  # proves it can be done
 
-    if a.action in ['use']:
-        prepare.open_in_slicer(a.model, model_modulename, conf)
-    elif a.action in ['show']:
-        view.ModelVisualizer(a.model, model_modulename, conf).run_sync()
+    view.ModelVisualizer(a.model, model_modulename, conf).run_sync()
 
 if __name__ == '__main__':
     main()
