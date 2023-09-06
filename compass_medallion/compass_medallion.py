@@ -4,7 +4,7 @@ import cadquery as cq
 def inch(i):
     return i * 25.4
 
-def medallion():
+def instance():
     p = os.path.join("compass_medallion", "traced1.dxf")
     obj = (
         cq.Workplane("XY")
@@ -22,6 +22,3 @@ def medallion():
         .cskHole(4, 8, 82)
     )
     return obj
-
-def instances():
-    return [ "medallion" ]

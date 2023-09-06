@@ -3,11 +3,6 @@ import math
 import cadquery as cq
 import cqmodel.util
 
-def instances():
-    return [
-        'lineblock'
-    ]
-
 def mm(x):
     return x
 
@@ -17,8 +12,8 @@ def degrees(x):
 def inches(x):
     return x * 25.4
 
-def lineblock():
-    block = (
+def instance():
+    return (
         cq.Workplane("XY")
         .lineTo(inches(0.0), inches(2.0))
         .lineTo(inches(0.5), inches(2))
@@ -41,4 +36,3 @@ def lineblock():
         .circle(inches(0.03125))
         .extrude(inches(0.03125))
     )
-    return block

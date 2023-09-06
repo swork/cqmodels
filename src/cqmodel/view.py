@@ -19,12 +19,18 @@ from .viewer import view_stl
 class ModelVisualizer:
     """Writes .stl for each item in a CadQuery model, and repeats on input changes."""
 
-    def __init__(self, model_pyfile:str, model_modulename, config:dict):
+    def __init__(self, model_pyfile:str, model_modulenameXXX:str, config:dict):
+        """
+        model_modulename is ignored, prep to calc it by convention
+        """
         self.mp_context = mp.get_context('spawn')
         self.model_pyfile = model_pyfile
-        self.model_modulename = model_modulename
         self.config = config
-        self.model_module = importlib.import_module(model_modulename)
+
+        self.model_modulename = basename(model_pyfile).split('.py', 1)[0]
+        if dirname(model_pyfile) not in sys.path:
+            sys.path.insert(0, dirname(model_pyfile))
+        self.model_module = importlib.import_module(self.model_modulename)
         self._mtime = os.stat(model_pyfile).st_mtime
         self._viewers = {}
 
@@ -55,6 +61,11 @@ class ModelVisualizer:
         if getattr(self.model_module, 'instance', None):
             stl_filename = self.model_pyfile.replace(".py", ".stl")
             call_to_compute = self.model_module.instance
+            model = self._calc_model(call_to_compute, stls, stl_filename)
+            if model:
+                cq.exporters.export(model, stl_filename)
+            else:
+                pass  # failure is presented to user by disappearance of viewer window
         elif getattr(self.model_module, 'instances'):
             class_instances = {}
             stls = set()
@@ -77,6 +88,7 @@ class ModelVisualizer:
                 else:
                     # Visually present failure? Yellow background? How to signal?
                     pass
+        print(stls)
         return stls
 
     def converge_viewers(self, stls):

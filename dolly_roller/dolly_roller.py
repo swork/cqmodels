@@ -126,7 +126,7 @@ class Roller:
                  .cutThruAll()
                  )
         return solid
-                       
+
     def roller(self):
         angled_face_Z = self._roller_Z - self.full_flat_width / 2 - self.flange_flat
         angled_face_X = self.max_radius - self._roller_cylinder_outer_radius
@@ -223,18 +223,3 @@ def instances():
         'Roller.washer',
         'axle_support'
     ]
-
-# def instance():
-#     select = os.environ.get('SELECT', 'dolly_roller')
-#     r = Roller()
-#     if select == 'roller':
-#         return r.roller()
-#     elif select == 'cap':
-#         return r.cap()
-#     elif select == 'cage':
-#         return r.cage()
-#     elif select == 'spacer':
-#         return r.spacer()
-#     else:
-#         # agglomerate into one .stl
-#         raise RuntimeError("implement agglomeration")

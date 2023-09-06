@@ -1,11 +1,6 @@
 import cadquery as cq
 
-def instances():
-    return [
-        'mount'
-    ]
-
-def mount():
+def instance():
     bar_diameter = 22
     clamp_width = 10
     stub_height_above_bar = 22

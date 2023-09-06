@@ -1,7 +1,7 @@
 import cadquery as cq
 
-def bush():
-    bush = (
+def instance():
+    return (
         cq.Workplane("XY")
         .circle(6.5)
         .extrude(1.5)
@@ -10,7 +10,3 @@ def bush():
         .circle(2.6)
         .cutThruAll()
     )
-    return bush
-
-def instances():
-    return [ "bush" ]
